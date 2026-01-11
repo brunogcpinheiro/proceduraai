@@ -1,0 +1,223 @@
+# Quickstart Guide: Screen Recording & SOP Generation
+
+**Feature**: 001-screen-recording-sop
+**Date**: 2026-01-06
+
+This guide provides step-by-step instructions for setting up the development environment and running the feature locally.
+
+## Prerequisites
+
+- **Node.js**: 20.x LTS
+- **pnpm**: 8.x (preferred) or npm 10.x
+- **Chrome**: Latest version (for extension testing)
+- **Supabase CLI**: Latest version
+- **Git**: 2.x
+
+## Environment Setup
+
+### 1. Clone and Install Dependencies
+
+```bash
+# Clone repository (if not already done)
+cd /path/to/proceduraai
+
+# Install dependencies for all packages
+pnpm install
+
+# Or if using npm
+npm install
+```
+
+### 2. Supabase Local Setup
+
+```bash
+# Start Supabase locally
+cd backend
+supabase start
+
+# This will output connection details:
+# API URL: http://localhost:54321
+# anon key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+# service_role key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Run migrations
+supabase db reset
+
+# Verify database
+supabase db diff
+```
+
+### 3. Environment Variables
+
+Create `.env.local` files in each project:
+
+**frontend/.env.local**
+```env
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+**extension/.env.local**
+```env
+VITE_SUPABASE_URL=http://localhost:54321
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+**backend/supabase/.env**
+```env
+OPENAI_API_KEY=sk-your-openai-key
+```
+
+### 4. Start Development Servers
+
+**Terminal 1 - Frontend (Next.js)**
+```bash
+cd frontend
+pnpm dev
+# Dashboard available at http://localhost:3000
+```
+
+**Terminal 2 - Extension (Vite)**
+```bash
+cd extension
+pnpm dev
+# Builds to extension/dist for Chrome loading
+```
+
+**Terminal 3 - Supabase Functions (if modifying)**
+```bash
+cd backend
+supabase functions serve --env-file ./supabase/.env
+```
+
+### 5. Load Extension in Chrome
+
+1. Open Chrome and navigate to `chrome://extensions/`
+2. Enable "Developer mode" (toggle in top right)
+3. Click "Load unpacked"
+4. Select the `extension/dist` directory
+5. Extension icon should appear in toolbar
+
+## Development Workflow
+
+### Recording Flow Test
+
+1. Open any website in Chrome
+2. Click ProceduraAI extension icon
+3. Click "Iniciar Gravação" (Start Recording)
+4. Perform some clicks on the page
+5. Click "Parar Gravação" (Stop Recording)
+6. Verify steps are captured in extension popup
+
+### SOP Generation Test
+
+1. After recording, click "Gerar SOP" (Generate SOP)
+2. Open dashboard at `http://localhost:3000`
+3. Log in (create account if needed)
+4. View generated SOP in dashboard
+5. Edit text and reorder steps
+6. Export to PDF or generate share link
+
+### Database Inspection
+
+```bash
+# Connect to local database
+supabase db studio
+# Opens Supabase Studio at http://localhost:54323
+```
+
+## Testing
+
+### Run All Tests
+
+```bash
+# From repository root
+pnpm test
+
+# Or run specific project tests
+cd extension && pnpm test
+cd frontend && pnpm test
+```
+
+### E2E Tests
+
+```bash
+cd frontend
+pnpm test:e2e
+
+# Or with UI
+pnpm test:e2e --ui
+```
+
+### Extension Tests
+
+```bash
+cd extension
+pnpm test
+
+# Watch mode
+pnpm test:watch
+```
+
+## Common Commands
+
+| Command | Location | Description |
+|---------|----------|-------------|
+| `pnpm dev` | frontend/ | Start Next.js dev server |
+| `pnpm dev` | extension/ | Build extension in watch mode |
+| `pnpm build` | frontend/ | Production build |
+| `pnpm build` | extension/ | Production extension build |
+| `pnpm test` | any | Run tests |
+| `pnpm lint` | any | Run ESLint |
+| `pnpm typecheck` | any | Run TypeScript compiler check |
+| `supabase start` | backend/ | Start local Supabase |
+| `supabase stop` | backend/ | Stop local Supabase |
+| `supabase db reset` | backend/ | Reset database with migrations |
+| `supabase functions serve` | backend/ | Run Edge Functions locally |
+
+## Troubleshooting
+
+### Extension not loading
+
+1. Check `extension/dist/manifest.json` exists
+2. Verify no errors in Chrome extension page
+3. Check console for content script errors
+
+### Supabase connection issues
+
+1. Verify Supabase is running: `supabase status`
+2. Check environment variables match Supabase output
+3. Verify CORS settings in Supabase dashboard
+
+### Screenshot capture failing
+
+1. Ensure page is fully loaded before capturing
+2. Check Chrome permissions for the extension
+3. Verify `chrome.tabs.captureVisibleTab` permission in manifest
+
+### AI generation not working
+
+1. Verify `OPENAI_API_KEY` is set in backend/.env
+2. Check Edge Function logs: `supabase functions logs process-procedure`
+3. Verify sufficient OpenAI credits
+
+## Project URLs (Local)
+
+| Service | URL |
+|---------|-----|
+| Dashboard | http://localhost:3000 |
+| Supabase API | http://localhost:54321 |
+| Supabase Studio | http://localhost:54323 |
+| Inbucket (email testing) | http://localhost:54324 |
+
+## Next Steps
+
+After setup, proceed with implementation following the tasks in `tasks.md` (generated by `/speckit.tasks`).
+
+Key implementation order:
+1. Database migrations and schema
+2. Extension recording functionality
+3. Backend Edge Functions
+4. Dashboard UI components
+5. Integration and E2E tests
