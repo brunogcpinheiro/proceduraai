@@ -1,114 +1,168 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from "@/lib/supabase/server";
+import { resolveScreenshotUrls } from "@/lib/supabase/storage";
 import type {
-  Procedure,
   ProcedureListItem,
+  ProcedureStatus,
   ProcedureWithSteps,
   PublicProcedure,
-  ProcedureStatus,
-} from '@/types/database'
+  Step,
+} from "@/types/database";
 
 // ============================================================================
-// T005: getProcedures - Paginated list query
+// T005: getProcedures - Paginated list query with signed URLs
 // ============================================================================
 
 export interface GetProceduresParams {
-  page?: number
-  pageSize?: number
-  search?: string
-  status?: ProcedureStatus
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: ProcedureStatus;
 }
 
 export interface GetProceduresResult {
-  data: ProcedureListItem[]
-  total: number
-  page: number
-  pageSize: number
-  totalPages: number
+  data: ProcedureListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
 export async function getProcedures(
   userId: string,
   params: GetProceduresParams = {}
 ): Promise<GetProceduresResult> {
-  const { page = 1, pageSize = 20, search, status } = params
-  const supabase = await createClient()
+  const { page = 1, pageSize = 20, search, status } = params;
+  const supabase = await createClient();
 
   // Calculate range
-  const from = (page - 1) * pageSize
-  const to = from + pageSize - 1
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
 
   // Build query
   let query = supabase
-    .from('procedures')
+    .from("procedures")
     .select(
-      'id, title, status, step_count, thumbnail_url, created_at, views_count, is_public',
-      { count: 'exact' }
+      "id, title, status, step_count, thumbnail_url, created_at, views_count, is_public",
+      { count: "exact" }
     )
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
 
   // Apply search filter
   if (search && search.trim()) {
-    query = query.ilike('title', `%${search.trim()}%`)
+    query = query.ilike("title", `%${search.trim()}%`);
   }
 
   // Apply status filter
   if (status) {
-    query = query.eq('status', status)
+    query = query.eq("status", status);
   }
 
   // Apply pagination
-  query = query.range(from, to)
+  query = query.range(from, to);
 
-  const { data, error, count } = await query
+  const { data, error, count } = await query;
 
   if (error) {
-    throw new Error(`Erro ao carregar procedimentos: ${error.message}`)
+    throw new Error(`Erro ao carregar procedimentos: ${error.message}`);
   }
 
-  const total = count ?? 0
-  const totalPages = Math.ceil(total / pageSize)
+  const procedures = (data as ProcedureListItem[]) ?? [];
+  const total = count ?? 0;
+  const totalPages = Math.ceil(total / pageSize);
+
+  // Resolve signed URLs for thumbnails
+  const thumbnailPaths = procedures.map((p) => p.thumbnail_url);
+  const signedUrls = await resolveScreenshotUrls(thumbnailPaths, "screenshots");
+
+  // Map signed URLs back to procedures
+  const proceduresWithSignedUrls = procedures.map((proc, index) => ({
+    ...proc,
+    thumbnail_url: signedUrls[index],
+  }));
 
   return {
-    data: (data as ProcedureListItem[]) ?? [],
+    data: proceduresWithSignedUrls,
     total,
     page,
     pageSize,
     totalPages,
-  }
+  };
 }
 
 // ============================================================================
-// T006: getProcedure - Single procedure with steps
+// T006: getProcedure - Single procedure with steps and signed URLs
 // ============================================================================
 
 export async function getProcedure(
   id: string,
   userId: string
 ): Promise<ProcedureWithSteps | null> {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
   const { data, error } = await supabase
-    .from('procedures')
+    .from("procedures")
     .select(
       `
       *,
       steps (*)
     `
     )
-    .eq('id', id)
-    .eq('user_id', userId)
-    .order('order_index', { referencedTable: 'steps', ascending: true })
-    .single()
+    .eq("id", id)
+    .eq("user_id", userId)
+    .order("order_index", { referencedTable: "steps", ascending: true })
+    .single();
 
   if (error) {
-    if (error.code === 'PGRST116') {
-      return null // Not found
+    if (error.code === "PGRST116") {
+      return null; // Not found
     }
-    throw new Error(`Erro ao carregar procedimento: ${error.message}`)
+    throw new Error(`Erro ao carregar procedimento: ${error.message}`);
   }
 
-  return data as ProcedureWithSteps
+  const procedure = data as ProcedureWithSteps;
+
+  // Resolve signed URLs for all step screenshots
+  const steps = procedure.steps ?? [];
+
+  // Collect all screenshot paths (prioritize annotated over raw)
+  const screenshotPaths = steps.map(
+    (step) => step.annotated_screenshot_url ?? step.screenshot_url
+  );
+
+  // Batch resolve signed URLs
+  const signedUrls = await resolveScreenshotUrls(
+    screenshotPaths,
+    "screenshots"
+  );
+
+  // Map signed URLs back to steps
+  const stepsWithSignedUrls: Step[] = steps.map((step, index) => ({
+    ...step,
+    // Store resolved URL in the appropriate field
+    annotated_screenshot_url: step.annotated_screenshot_url
+      ? signedUrls[index]
+      : null,
+    screenshot_url: !step.annotated_screenshot_url
+      ? signedUrls[index]
+      : step.screenshot_url,
+  }));
+
+  // Also resolve thumbnail URL if exists
+  let thumbnailUrl = procedure.thumbnail_url;
+  if (thumbnailUrl && !thumbnailUrl.startsWith("http")) {
+    const [resolvedThumb] = await resolveScreenshotUrls(
+      [thumbnailUrl],
+      "screenshots"
+    );
+    thumbnailUrl = resolvedThumb;
+  }
+
+  return {
+    ...procedure,
+    thumbnail_url: thumbnailUrl,
+    steps: stepsWithSignedUrls,
+  };
 }
 
 // ============================================================================
@@ -116,27 +170,27 @@ export async function getProcedure(
 // ============================================================================
 
 interface PublicProcedureRow {
-  id: string
-  title: string
-  description: string | null
-  step_count: number
-  created_at: string
+  id: string;
+  title: string;
+  description: string | null;
+  step_count: number;
+  created_at: string;
   steps: Array<{
-    order_index: number
-    annotated_screenshot_url: string | null
-    screenshot_url: string | null
-    generated_text: string | null
-    manual_text: string | null
-  }>
+    order_index: number;
+    annotated_screenshot_url: string | null;
+    screenshot_url: string | null;
+    generated_text: string | null;
+    manual_text: string | null;
+  }>;
 }
 
 export async function getPublicProcedure(
   slug: string
 ): Promise<PublicProcedure | null> {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
   const { data, error } = await supabase
-    .from('procedures')
+    .from("procedures")
     .select(
       `
       id,
@@ -161,23 +215,23 @@ export async function getPublicProcedure(
       )
     `
     )
-    .eq('public_slug', slug)
-    .eq('is_public', true)
-    .order('order_index', { referencedTable: 'steps', ascending: true })
-    .single()
+    .eq("public_slug", slug)
+    .eq("is_public", true)
+    .order("order_index", { referencedTable: "steps", ascending: true })
+    .single();
 
   if (error) {
-    if (error.code === 'PGRST116') {
-      return null // Not found
+    if (error.code === "PGRST116") {
+      return null; // Not found
     }
-    throw new Error(`Erro ao carregar procedimento público: ${error.message}`)
+    throw new Error(`Erro ao carregar procedimento público: ${error.message}`);
   }
 
   // Type assertion for the data
-  const procedureData = data as unknown as PublicProcedureRow
+  const procedureData = data as unknown as PublicProcedureRow;
 
   // Increment views count (fire and forget)
-  void supabase.rpc('increment_procedure_views', { slug } as never)
+  void supabase.rpc("increment_procedure_views", { slug } as never);
 
   // Transform to PublicProcedure format
   const publicProcedure: PublicProcedure = {
@@ -193,7 +247,7 @@ export async function getPublicProcedure(
       generated_text: step.generated_text,
       manual_text: step.manual_text,
     })),
-  }
+  };
 
-  return publicProcedure
+  return publicProcedure;
 }
