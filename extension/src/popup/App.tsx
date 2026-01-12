@@ -10,15 +10,8 @@ import { StepCounter } from './components/StepCounter'
 import './styles.css'
 
 export default function App() {
-  const {
-    isRecording,
-    title,
-    stepCount,
-    isLoading,
-    error,
-    startRecording,
-    stopRecording,
-  } = useRecording()
+  const { isRecording, title, stepCount, isLoading, error, startRecording, stopRecording } =
+    useRecording()
 
   return (
     <div className="popup-container">
@@ -58,11 +51,7 @@ export default function App() {
         )}
 
         {/* Recording status */}
-        <RecordingStatus
-          isRecording={isRecording}
-          title={title}
-          stepCount={stepCount}
-        />
+        <RecordingStatus isRecording={isRecording} title={title} stepCount={stepCount} />
 
         {/* Recording button */}
         <div className="mt-4">
@@ -78,7 +67,7 @@ export default function App() {
       {/* Footer */}
       <footer className="popup-footer">
         <a
-          href="https://procedura.ai/dashboard"
+          href="http://localhost:3000/dashboard"
           target="_blank"
           rel="noopener noreferrer"
           className="text-sm text-blue-600 hover:text-blue-700 hover:underline"

@@ -6,11 +6,32 @@
 import { startRecording, stopRecording, getRecordingState, addStep } from './recordingState'
 import { MessageType, type Message, type MessageResponse } from './messageHandlers'
 import { updateBadge, BadgeState } from './badgeManager'
+import { initSyncService, syncRecording, processQueue, getSyncState, getQueueCount } from './syncService'
+import type { SyncProgress } from '../types/sync'
+
+// Track current sync progress for popup
+let currentSyncProgress: SyncProgress | null = null
 
 // Initialize extension on install
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('[ProceduraAI] Extension installed:', details.reason)
   updateBadge(BadgeState.IDLE)
+  initSyncService()
+})
+
+// T024: Initialize sync service and handle online/offline events
+chrome.runtime.onStartup.addListener(() => {
+  initSyncService()
+})
+
+// Listen for online/offline events
+self.addEventListener('online', () => {
+  console.log('[ProceduraAI] Back online')
+  processQueue()
+})
+
+self.addEventListener('offline', () => {
+  console.log('[ProceduraAI] Went offline')
 })
 
 // Handle messages from content scripts and popup
@@ -62,6 +83,33 @@ async function handleMessage(
     case MessageType.STOP_RECORDING: {
       const state = await stopRecording()
       updateBadge(BadgeState.IDLE)
+
+      // T020: Start sync process
+      if (state.steps.length > 0 && state.title) {
+        // Start sync in background
+        syncRecording({
+          title: state.title,
+          steps: state.steps,
+          onProgress: (progress) => {
+            currentSyncProgress = progress
+            // T021: Notify popup of progress
+            chrome.runtime.sendMessage({
+              type: MessageType.SYNC_PROGRESS,
+              payload: { progress },
+            }).catch(() => {
+              // Popup might be closed, that's ok
+            })
+          },
+        }).then((result) => {
+          currentSyncProgress = null
+          // Notify popup of completion
+          chrome.runtime.sendMessage({
+            type: MessageType.SYNC_COMPLETE,
+            payload: { result },
+          }).catch(() => {})
+        })
+      }
+
       return {
         success: true,
         data: {
@@ -69,6 +117,45 @@ async function handleMessage(
           stepCount: state.steps.length,
           steps: state.steps,
         },
+      }
+    }
+
+    case MessageType.GET_SYNC_STATUS: {
+      const syncState = getSyncState()
+      return {
+        success: true,
+        data: {
+          isOnline: syncState.isOnline,
+          isSyncing: syncState.isSyncing,
+          queueCount: getQueueCount(),
+          currentProgress: currentSyncProgress,
+        },
+      }
+    }
+
+    case MessageType.SYNC_PROCEDURE: {
+      const { title, steps } = message.payload || {}
+      if (!title || !steps) {
+        return { success: false, error: 'Missing title or steps' }
+      }
+
+      const result = await syncRecording({
+        title,
+        steps,
+        onProgress: (progress) => {
+          currentSyncProgress = progress
+          chrome.runtime.sendMessage({
+            type: MessageType.SYNC_PROGRESS,
+            payload: { progress },
+          }).catch(() => {})
+        },
+      })
+
+      currentSyncProgress = null
+      return {
+        success: result.success,
+        data: { procedureId: result.procedureId },
+        error: result.error,
       }
     }
 
