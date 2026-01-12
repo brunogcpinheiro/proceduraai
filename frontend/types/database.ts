@@ -107,7 +107,7 @@ export interface CreateProcedureInput {
 
 export interface UpdateProcedureInput {
   title?: string
-  description?: string
+  description?: string | null
   is_public?: boolean
   status?: ProcedureStatus
 }

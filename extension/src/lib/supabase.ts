@@ -133,6 +133,67 @@ export async function uploadScreenshot(
   return publicUrl
 }
 
+// T018: Upload screenshot (batch-friendly version)
+export async function uploadScreenshotBatch(
+  userId: string,
+  procedureId: string,
+  orderIndex: number,
+  blob: Blob
+): Promise<string | null> {
+  const filename = `${userId}/${procedureId}/step-${orderIndex}-${Date.now()}.png`
+
+  const { error } = await supabase.storage
+    .from('screenshots')
+    .upload(filename, blob, {
+      contentType: 'image/png',
+      upsert: false,
+      cacheControl: '31536000', // 1 year cache
+    })
+
+  if (error) {
+    console.error('[ProceduraAI] Error uploading screenshot:', error)
+    return null
+  }
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('screenshots')
+    .getPublicUrl(filename)
+
+  return publicUrl
+}
+
+// T019: Create steps in batch
+export interface CreateStepInput {
+  procedure_id: string
+  order_index: number
+  screenshot_url: string | null
+  action_type: Step['action_type']
+  element_selector: string | null
+  element_text: string | null
+  element_tag: string | null
+  click_x: number | null
+  click_y: number | null
+  page_url: string
+  page_title: string | null
+  captured_at: string
+}
+
+export async function createStepsBatch(steps: CreateStepInput[]): Promise<Step[] | null> {
+  if (steps.length === 0) return []
+
+  const { data, error } = await supabase
+    .from('steps')
+    .insert(steps)
+    .select()
+
+  if (error) {
+    console.error('[ProceduraAI] Error creating steps batch:', error)
+    return null
+  }
+
+  return data
+}
+
 // Process procedure (trigger AI generation)
 export async function processProcedure(procedureId: string): Promise<{ success: boolean; message: string }> {
   const { data: { session } } = await supabase.auth.getSession()
