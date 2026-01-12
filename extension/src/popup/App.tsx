@@ -4,21 +4,33 @@
  */
 
 import { useRecording } from './hooks/useRecording'
+import { useAuth } from './hooks/useAuth'
 import { RecordingButton } from './components/RecordingButton'
 import { RecordingStatus } from './components/RecordingStatus'
 import { StepCounter } from './components/StepCounter'
+import { LoginForm } from './components/LoginForm'
 import './styles.css'
 
 export default function App() {
-  const {
-    isRecording,
-    title,
-    stepCount,
-    isLoading,
-    error,
-    startRecording,
-    stopRecording,
-  } = useRecording()
+  const { user, loading: authLoading, error: authError, signIn, signOut } = useAuth()
+  const { isRecording, title, stepCount, isLoading, error: recordingError, startRecording, stopRecording } =
+    useRecording()
+
+  if (authLoading) {
+    return (
+      <div className="popup-container flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="popup-container">
+        <LoginForm onLogin={signIn} isLoading={authLoading} error={authError} />
+      </div>
+    )
+  }
 
   return (
     <div className="popup-container">
@@ -42,7 +54,15 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-lg font-semibold text-gray-900">ProceduraAI</h1>
-            <p className="text-xs text-gray-500">Documente processos com IA</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-gray-500 truncate max-w-[120px]">{user.email}</p>
+              <button 
+                onClick={signOut}
+                className="text-xs text-red-500 hover:text-red-600 hover:underline"
+              >
+                Sair
+              </button>
+            </div>
           </div>
         </div>
         <StepCounter count={stepCount} isRecording={isRecording} />
@@ -51,18 +71,14 @@ export default function App() {
       {/* Main content */}
       <main className="popup-content">
         {/* Error message */}
-        {error && (
+        {recordingError && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-700">{error}</p>
+            <p className="text-sm text-red-700">{recordingError}</p>
           </div>
         )}
 
         {/* Recording status */}
-        <RecordingStatus
-          isRecording={isRecording}
-          title={title}
-          stepCount={stepCount}
-        />
+        <RecordingStatus isRecording={isRecording} title={title} stepCount={stepCount} />
 
         {/* Recording button */}
         <div className="mt-4">
@@ -78,7 +94,7 @@ export default function App() {
       {/* Footer */}
       <footer className="popup-footer">
         <a
-          href="https://procedura.ai/dashboard"
+          href="http://localhost:3000/dashboard"
           target="_blank"
           rel="noopener noreferrer"
           className="text-sm text-blue-600 hover:text-blue-700 hover:underline"

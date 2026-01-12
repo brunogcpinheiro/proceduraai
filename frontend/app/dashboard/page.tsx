@@ -29,7 +29,7 @@ export default async function DashboardPage({
           </p>
         </div>
         <Button asChild>
-          <Link href="/procedures/new">Novo SOP</Link>
+          <Link href="/dashboard/procedures/new">Novo SOP</Link>
         </Button>
       </div>
 
