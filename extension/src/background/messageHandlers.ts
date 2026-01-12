@@ -4,6 +4,7 @@
  */
 
 import type { CapturedStep } from '../types/database'
+import type { SyncProgress, SyncRecordingResult } from '../types/sync'
 
 /**
  * Message types for communication between extension components
@@ -26,6 +27,9 @@ export const MessageType = {
 
   // Sync
   SYNC_PROCEDURE: 'SYNC_PROCEDURE',
+  SYNC_PROGRESS: 'SYNC_PROGRESS',
+  SYNC_COMPLETE: 'SYNC_COMPLETE',
+  GET_SYNC_STATUS: 'GET_SYNC_STATUS',
   GENERATE_SOP: 'GENERATE_SOP',
 } as const
 
@@ -37,11 +41,14 @@ export type MessageType = typeof MessageType[keyof typeof MessageType]
 export interface MessagePayload {
   title?: string
   step?: CapturedStep
+  steps?: CapturedStep[]
   tabId?: number
   procedureId?: string
   isRecording?: boolean
   email?: string
   password?: string
+  progress?: SyncProgress
+  result?: SyncRecordingResult
 }
 
 /**
