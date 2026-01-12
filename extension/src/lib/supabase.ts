@@ -55,8 +55,19 @@ export async function getCurrentUser(): Promise<User | null> {
 
 // Procedure helpers
 export async function createProcedure(title: string, description?: string): Promise<CreateProcedureResponse | null> {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  console.log('[ProceduraAI] Creating procedure with title:', title)
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  
+  if (authError) {
+    console.error('[ProceduraAI] Auth check error:', authError)
+  }
+
+  if (!user) {
+    console.error('[ProceduraAI] Cannot create procedure: User not authenticated')
+    return null
+  }
+
+  console.log('[ProceduraAI] User authenticated:', user.id)
 
   const { data, error } = await supabase
     .from('procedures')
@@ -70,10 +81,11 @@ export async function createProcedure(title: string, description?: string): Prom
     .single()
 
   if (error) {
-    console.error('[ProceduraAI] Error creating procedure:', error)
+    console.error('[ProceduraAI] Database error creating procedure:', error)
     return null
   }
 
+  console.log('[ProceduraAI] Procedure created successfully:', data.id)
   return data
 }
 

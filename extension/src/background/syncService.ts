@@ -113,7 +113,7 @@ export async function syncRecording(params: SyncRecordingParams): Promise<SyncRe
 
     const stepRecords = steps.map((step, index) => ({
       procedure_id: procedureId,
-      order_index: index,
+      order_index: index + 1, // Database requires 1-based index
       screenshot_url: screenshotUrls[index] ?? null,
       action_type: step.actionType,
       element_selector: step.elementSelector,
@@ -152,6 +152,7 @@ export async function syncRecording(params: SyncRecordingParams): Promise<SyncRe
 
     return { success: true, procedureId }
   } catch (error) {
+    console.error('[ProceduraAI] Sync failed:', error)
     const errorMessage = error instanceof Error ? error.message : SyncMessages.error
     onProgress?.({
       phase: 'error',
@@ -198,10 +199,11 @@ async function uploadScreenshotsWithProgress(
 
       try {
         const blob = await dataUrlToBlob(step.screenshotDataUrl)
-        const url = await uploadScreenshotBatch(userId, procedureId, index, blob)
+        // Use 1-based index to match step order
+        const url = await uploadScreenshotBatch(userId, procedureId, index + 1, blob)
         return url
-      } catch {
-        console.error(`Failed to upload screenshot ${index}`)
+      } catch (error) {
+        console.error(`Failed to upload screenshot ${index + 1}:`, error)
         return null
       }
     })
