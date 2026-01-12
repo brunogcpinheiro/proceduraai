@@ -1,33 +1,112 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import Image from 'next/image'
-import { MousePointer, Type, Navigation, ArrowUpDown, List, ExternalLink } from 'lucide-react'
-import type { Step, ActionType } from '@/types/database'
+import type { ActionType, Step } from "@/types/database";
+import {
+  ArrowUpDown,
+  ExternalLink,
+  Globe,
+  Keyboard,
+  List,
+  MousePointer,
+  Navigation,
+  Tag,
+  Type,
+} from "lucide-react";
+import Image from "next/image";
+import { useState } from "react";
 
 interface StepCardProps {
-  step: Step
-  onScreenshotClick?: () => void
+  step: Step;
+  onScreenshotClick?: () => void;
 }
 
 const actionConfig: Record<
   ActionType,
   { label: string; icon: typeof MousePointer; color: string }
 > = {
-  click: { label: 'Clique', icon: MousePointer, color: 'text-blue-600 bg-blue-50' },
-  input: { label: 'Digitação', icon: Type, color: 'text-purple-600 bg-purple-50' },
-  navigate: { label: 'Navegação', icon: Navigation, color: 'text-green-600 bg-green-50' },
-  scroll: { label: 'Rolagem', icon: ArrowUpDown, color: 'text-orange-600 bg-orange-50' },
-  select: { label: 'Seleção', icon: List, color: 'text-pink-600 bg-pink-50' },
+  click: {
+    label: "Clique",
+    icon: MousePointer,
+    color: "text-blue-600 bg-blue-50",
+  },
+  input: {
+    label: "Digitação",
+    icon: Type,
+    color: "text-purple-600 bg-purple-50",
+  },
+  navigate: {
+    label: "Navegação",
+    icon: Navigation,
+    color: "text-green-600 bg-green-50",
+  },
+  scroll: {
+    label: "Rolagem",
+    icon: ArrowUpDown,
+    color: "text-orange-600 bg-orange-50",
+  },
+  select: { label: "Seleção", icon: List, color: "text-pink-600 bg-pink-50" },
+};
+
+const tagLabels: Record<string, string> = {
+  button: "Botão",
+  a: "Link",
+  input: "Campo de texto",
+  textarea: "Área de texto",
+  select: "Menu de seleção",
+  checkbox: "Caixa de seleção",
+  radio: "Opção",
+  label: "Rótulo",
+  div: "Área",
+  span: "Texto",
+  img: "Imagem",
+  form: "Formulário",
+  li: "Item de lista",
+  ul: "Lista",
+  nav: "Navegação",
+  header: "Cabeçalho",
+  footer: "Rodapé",
+  section: "Seção",
+  article: "Artigo",
+  aside: "Barra lateral",
+  main: "Conteúdo principal",
+  h1: "Título principal",
+  h2: "Subtítulo",
+  h3: "Subtítulo",
+  p: "Parágrafo",
+  table: "Tabela",
+  tr: "Linha da tabela",
+  td: "Célula",
+  th: "Cabeçalho de coluna",
+  video: "Vídeo",
+  audio: "Áudio",
+  svg: "Ícone",
+};
+
+function getSimplifiedUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.pathname + urlObj.search;
+  } catch {
+    return url;
+  }
+}
+
+function getTagLabel(tag: string | null): string | null {
+  if (!tag) return null;
+  const lowerTag = tag.toLowerCase();
+  return tagLabels[lowerTag] || tag.toUpperCase();
 }
 
 export function StepCard({ step, onScreenshotClick }: StepCardProps) {
-  const [imageLoaded, setImageLoaded] = useState(false)
-  const action = actionConfig[step.action_type]
-  const ActionIcon = action.icon
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const action = actionConfig[step.action_type];
+  const ActionIcon = action.icon;
 
-  const screenshotUrl = step.annotated_screenshot_url ?? step.screenshot_url
-  const description = step.manual_text ?? step.generated_text
+  const screenshotUrl = step.annotated_screenshot_url ?? step.screenshot_url;
+  const description = step.manual_text ?? step.generated_text;
+  const tagLabel = getTagLabel(step.element_tag);
+  const simplifiedUrl = step.page_url ? getSimplifiedUrl(step.page_url) : null;
+  const inputValue = (step as Step & { input_value?: string }).input_value;
 
   return (
     <div className="flex gap-4 relative">
@@ -52,7 +131,7 @@ export function StepCard({ step, onScreenshotClick }: StepCardProps) {
               alt={`Passo ${step.order_index + 1}`}
               fill
               className={`object-cover transition-opacity duration-300 ${
-                imageLoaded ? 'opacity-100' : 'opacity-0'
+                imageLoaded ? "opacity-100" : "opacity-0"
               }`}
               sizes="280px"
               loading="lazy"
@@ -81,7 +160,7 @@ export function StepCard({ step, onScreenshotClick }: StepCardProps) {
       {/* Content */}
       <div className="flex-1 py-1">
         {/* Step header */}
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
           <span className="md:hidden inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-medium">
             {step.order_index + 1}
           </span>
@@ -91,6 +170,12 @@ export function StepCard({ step, onScreenshotClick }: StepCardProps) {
             <ActionIcon className="h-3 w-3" />
             {action.label}
           </span>
+          {tagLabel && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-gray-600 bg-gray-100">
+              <Tag className="h-3 w-3" />
+              {tagLabel}
+            </span>
+          )}
         </div>
 
         {/* Description */}
@@ -101,19 +186,35 @@ export function StepCard({ step, onScreenshotClick }: StepCardProps) {
         {/* Element info */}
         {step.element_text && (
           <p className="mt-2 text-sm text-gray-500">
-            Elemento: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">{step.element_text}</code>
+            Elemento:{" "}
+            <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">
+              {step.element_text}
+            </code>
           </p>
         )}
 
-        {/* Page info */}
-        <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
-          {step.page_title && (
-            <span className="truncate max-w-xs" title={step.page_title}>
-              {step.page_title}
-            </span>
-          )}
-        </div>
+        {/* Input value (for input actions) */}
+        {inputValue && (
+          <p className="mt-2 text-sm text-gray-500 flex items-center gap-1.5">
+            <Keyboard className="h-3.5 w-3.5" />
+            Digitou:{" "}
+            <code className="bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded text-xs">
+              {inputValue}
+            </code>
+          </p>
+        )}
+
+        {/* Simplified URL */}
+        {simplifiedUrl && (
+          <p
+            className="mt-2 text-xs text-gray-400 flex items-center gap-1.5 truncate"
+            title={step.page_url}
+          >
+            <Globe className="h-3 w-3 shrink-0" />
+            <span className="truncate">{simplifiedUrl}</span>
+          </p>
+        )}
       </div>
     </div>
-  )
+  );
 }

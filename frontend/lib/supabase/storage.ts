@@ -102,6 +102,41 @@ export async function getSignedUrls(
 }
 
 /**
+ * Extract the relative path from a full Supabase storage URL
+ * Handles both public and signed URL formats
+ * Example: https://xxx.supabase.co/storage/v1/object/public/screenshots/user_id/proc_id/file.png
+ * Returns: user_id/proc_id/file.png
+ */
+export function extractPathFromFullUrl(
+  url: string,
+  bucket: StorageBucket = "screenshots"
+): string | null {
+  if (!url) return null;
+
+  // Match patterns like:
+  // /storage/v1/object/public/{bucket}/...
+  // /storage/v1/object/sign/{bucket}/...
+  const patterns = [
+    new RegExp(`/storage/v1/object/public/${bucket}/(.+?)(?:\\?|$)`),
+    new RegExp(`/storage/v1/object/sign/${bucket}/(.+?)(?:\\?|$)`),
+    // Also handle direct path after bucket name in URL
+    new RegExp(
+      `supabase\\.co/storage/v1/object/(?:public|sign)/${bucket}/(.+?)(?:\\?|$)`
+    ),
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      // Decode URL-encoded characters
+      return decodeURIComponent(match[1]);
+    }
+  }
+
+  return null;
+}
+
+/**
  * Determine which bucket a screenshot URL belongs to
  * URLs stored in DB are paths like: "{user_id}/{procedure_id}/{filename}.webp"
  */
@@ -121,6 +156,7 @@ export function determineBucket(url: string | null): StorageBucket | null {
 /**
  * Resolve screenshot URL to a signed URL
  * Handles both raw and annotated screenshots
+ * Now also handles full URLs by extracting the path and generating signed URLs
  */
 export async function resolveScreenshotUrl(
   path: string | null,
@@ -128,56 +164,68 @@ export async function resolveScreenshotUrl(
 ): Promise<string | null> {
   if (!path) return null;
 
-  // Already a full URL (shouldn't happen but handle gracefully)
+  let actualPath = path;
+
+  // If it's a full URL, extract the path
   if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
+    const extractedPath = extractPathFromFullUrl(path, bucket);
+    if (extractedPath) {
+      actualPath = extractedPath;
+    } else {
+      // Could not extract path, return null (or you could return original URL)
+      console.warn(`Could not extract path from URL: ${path}`);
+      return null;
+    }
   }
 
-  return getSignedUrl(bucket, path);
+  return getSignedUrl(bucket, actualPath);
 }
 
 /**
  * Resolve multiple screenshot URLs efficiently in batch
+ * Now also handles full URLs by extracting paths and generating signed URLs
  */
 export async function resolveScreenshotUrls(
   paths: (string | null)[],
   bucket: StorageBucket = "screenshots"
 ): Promise<(string | null)[]> {
-  // Filter valid paths and track their indices
-  const validPathsWithIndex: { path: string; index: number }[] = [];
+  // Process paths: extract actual paths from full URLs
+  const processedPaths: { originalIndex: number; path: string }[] = [];
 
   paths.forEach((path, index) => {
-    if (path && !path.startsWith("http://") && !path.startsWith("https://")) {
-      validPathsWithIndex.push({ path, index });
+    if (!path) return;
+
+    let actualPath = path;
+
+    // If it's a full URL, try to extract the path
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+      const extractedPath = extractPathFromFullUrl(path, bucket);
+      if (extractedPath) {
+        actualPath = extractedPath;
+      } else {
+        // Could not extract, skip this path
+        console.warn(`Could not extract path from URL: ${path}`);
+        return;
+      }
     }
+
+    processedPaths.push({ originalIndex: index, path: actualPath });
   });
 
-  if (validPathsWithIndex.length === 0) {
-    return paths.map((p) => {
-      if (p && (p.startsWith("http://") || p.startsWith("https://"))) {
-        return p;
-      }
-      return null;
-    });
+  if (processedPaths.length === 0) {
+    return paths.map(() => null);
   }
 
   const signedUrlMap = await getSignedUrls(
     bucket,
-    validPathsWithIndex.map((v) => v.path)
+    processedPaths.map((v) => v.path)
   );
 
   // Build result array
-  const result: (string | null)[] = [...paths];
+  const result: (string | null)[] = paths.map(() => null);
 
-  validPathsWithIndex.forEach(({ path, index }) => {
-    result[index] = signedUrlMap.get(path) ?? null;
-  });
-
-  // Handle already-full URLs
-  paths.forEach((path, index) => {
-    if (path && (path.startsWith("http://") || path.startsWith("https://"))) {
-      result[index] = path;
-    }
+  processedPaths.forEach(({ path, originalIndex }) => {
+    result[originalIndex] = signedUrlMap.get(path) ?? null;
   });
 
   return result;
