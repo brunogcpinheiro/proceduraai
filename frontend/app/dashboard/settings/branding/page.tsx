@@ -14,7 +14,7 @@ export default async function BrandingPage() {
 
   const { data } = await supabase
     .from("users")
-    .select("brand_color, brand_logo_url")
+    .select("brand_color, brand_logo_url, brand_name")
     .eq("id", user.id)
     .single();
 
@@ -35,6 +35,7 @@ export default async function BrandingPage() {
         userId={user.id}
         initialColor={profile?.brand_color || "#2563eb"}
         initialLogoUrl={profile?.brand_logo_url || null}
+        initialBrandName={profile?.brand_name || null}
       />
     </div>
   );

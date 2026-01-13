@@ -6,12 +6,18 @@ import Image from "next/image";
 
 interface DocumentViewerProps {
   content: SOPDocumentContent;
+  branding?: {
+    color?: string | null;
+    logoUrl?: string | null;
+    name?: string | null;
+  };
   onExport?: () => void;
   onEdit?: () => void;
 }
 
 export function DocumentViewer({
   content,
+  branding,
   onExport,
   onEdit,
 }: DocumentViewerProps) {
@@ -28,8 +34,29 @@ export function DocumentViewer({
     >
       {/* Header */}
       <header className="border-b border-gray-200 pb-6 mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">{content.title}</h1>
-        <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
+        <div className="flex flex-col gap-6">
+          {/* Brand Identity */}
+          {(branding?.logoUrl || branding?.name) && (
+            <div className="flex items-center gap-3">
+              {branding?.logoUrl && (
+                <img
+                  src={branding.logoUrl}
+                  alt={branding?.name || "Company Logo"}
+                  className="h-12 w-auto object-contain"
+                />
+              )}
+              {branding?.name && (
+                <span className="text-lg font-bold text-gray-900">
+                  {branding.name}
+                </span>
+              )}
+            </div>
+          )}
+
+          <h1 className="text-3xl font-bold text-gray-900">{content.title}</h1>
+        </div>
+
+        <div className="mt-4 flex items-center gap-4 text-sm text-gray-500">
           <span>Versão {content.version}</span>
           <span>•</span>
           <span>
@@ -39,7 +66,7 @@ export function DocumentViewer({
         </div>
 
         {/* Actions */}
-        <div id="sop-document-actions" className="mt-4 flex gap-3">
+        <div id="sop-document-actions" className="mt-6 flex gap-3">
           {onExport && (
             <button
               onClick={handleExport}
@@ -63,10 +90,10 @@ export function DocumentViewer({
 
       {/* Purpose Section */}
       <section className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">
+        <h2 className="text-xl font-semibold text-gray-900 mb-3">
           {content.sections.purpose.title}
         </h2>
-        <p className="text-gray-700 leading-relaxed">
+        <p className="text-gray-700 leading-relaxed text-lg">
           {content.sections.purpose.content}
         </p>
       </section>
@@ -75,17 +102,17 @@ export function DocumentViewer({
       {content.sections.prerequisites.items &&
         content.sections.prerequisites.items.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">
+            <h2 className="text-xl font-semibold text-gray-900 mb-3">
               {content.sections.prerequisites.title}
             </h2>
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {content.sections.prerequisites.items.map((item, index) => (
                 <li
                   key={index}
-                  className="flex items-start gap-2 text-gray-700"
+                  className="flex items-start gap-3 text-gray-700"
                 >
-                  <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-                  {item}
+                  <CheckCircle className="h-6 w-6 text-green-500 shrink-0 mt-0.5" />
+                  <span className="text-lg">{item}</span>
                 </li>
               ))}
             </ul>
@@ -94,36 +121,45 @@ export function DocumentViewer({
 
       {/* Steps Section */}
       <section className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-6">Passos</h2>
-        <div className="space-y-8">
+        <h2 className="text-xl font-semibold text-gray-900 mb-6">Passos</h2>
+        <div className="space-y-10">
           {content.sections.steps.map((step) => (
             <div key={step.number} className="flex gap-6">
               {/* Step number */}
-              <div className="shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
+              <div
+                className="shrink-0 w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg"
+                style={
+                  branding?.color
+                    ? { backgroundColor: branding.color }
+                    : undefined
+                }
+              >
                 {step.number}
               </div>
 
               {/* Step content */}
               <div className="flex-1">
-                <h3 className="font-medium text-gray-900 mb-2">{step.title}</h3>
-                <p className="text-gray-700 mb-4">{step.description}</p>
+                <h3 className="text-xl font-medium text-gray-900 mb-3">
+                  {step.title}
+                </h3>
+                <p className="text-gray-700 mb-4 text-lg">{step.description}</p>
 
                 {/* Screenshot */}
                 {step.screenshotUrl && (
-                  <div className="relative aspect-video max-w-md rounded-lg overflow-hidden border border-gray-200 mb-4">
+                  <div className="relative aspect-video max-w-2xl rounded-lg overflow-hidden border border-gray-200 mb-4 shadow-sm">
                     <Image
                       src={step.screenshotUrl}
                       alt={`Passo ${step.number}`}
                       fill
                       className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 400px"
+                      sizes="(max-width: 768px) 100vw, 800px"
                     />
                   </div>
                 )}
 
                 {/* Notes */}
                 {step.notes && (
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-base text-amber-900">
                     💡 {step.notes}
                   </div>
                 )}
@@ -134,11 +170,11 @@ export function DocumentViewer({
       </section>
 
       {/* Conclusion Section */}
-      <section className="pt-6 border-t border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">
+      <section className="pt-8 border-t border-gray-200">
+        <h2 className="text-xl font-semibold text-gray-900 mb-3">
           {content.sections.conclusion.title}
         </h2>
-        <p className="text-gray-700 leading-relaxed">
+        <p className="text-gray-700 leading-relaxed text-lg">
           {content.sections.conclusion.content}
         </p>
       </section>

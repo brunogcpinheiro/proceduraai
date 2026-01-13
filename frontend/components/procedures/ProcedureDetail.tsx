@@ -24,11 +24,17 @@ import { ShareDialog } from "./ShareDialog";
 interface ProcedureDetailProps {
   procedure: ProcedureWithSteps;
   document?: SOPDocument | null;
+  branding?: {
+    color?: string | null;
+    logoUrl?: string | null;
+    name?: string | null;
+  };
 }
 
 export function ProcedureDetail({
   procedure,
   document: initialDocument,
+  branding,
 }: ProcedureDetailProps) {
   const router = useRouter();
   const [currentProcedure, setCurrentProcedure] = useState(procedure);
@@ -190,7 +196,10 @@ export function ProcedureDetail({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column: Document */}
             <div className="lg:col-span-2">
-              <DocumentViewer content={currentDocument.content} />
+              <DocumentViewer
+                content={currentDocument.content}
+                branding={branding}
+              />
             </div>
 
             {/* Right Column: Controls & Metadata */}

@@ -36,6 +36,15 @@ async function ProcedureContent({ id }: ProcedureContentProps) {
     return null;
   }
 
+  // Fetch user branding
+  const { data } = await supabase
+    .from("users")
+    .select("brand_color, brand_logo_url, brand_name")
+    .eq("id", user.id)
+    .single();
+
+  const profile = data as any;
+
   const procedure = await getProcedure(id, user.id);
 
   if (!procedure) {
@@ -53,7 +62,17 @@ async function ProcedureContent({ id }: ProcedureContentProps) {
       }
     : null;
 
-  return <ProcedureDetail procedure={procedure} document={enrichedDocument} />;
+  return (
+    <ProcedureDetail
+      procedure={procedure}
+      document={enrichedDocument}
+      branding={{
+        color: profile?.brand_color,
+        logoUrl: profile?.brand_logo_url,
+        name: profile?.brand_name,
+      }}
+    />
+  );
 }
 
 import { SOPDocumentContent } from "@/types/database";

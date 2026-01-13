@@ -46,6 +46,24 @@ async function getProcedureTitle(procedureId: string): Promise<string> {
   return result?.title || "Documento SOP";
 }
 
+async function getProcedureBranding(procedureId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("procedures")
+    .select("users (brand_color, brand_logo_url, brand_name)")
+    .eq("id", procedureId)
+    .single();
+
+  const user = (data as any)?.users;
+  return user
+    ? {
+        color: user.brand_color,
+        logoUrl: user.brand_logo_url,
+        name: user.brand_name,
+      }
+    : undefined;
+}
+
 export default async function PublicSOPPage({ params }: SOPPageProps) {
   const { slug } = await params;
   const document = await getPublicDocument(slug);
@@ -59,6 +77,7 @@ export default async function PublicSOPPage({ params }: SOPPageProps) {
   const enrichedContent = await enrichContentWithSignedUrls(document.content);
 
   const procedureTitle = await getProcedureTitle(document.procedure_id);
+  const branding = await getProcedureBranding(document.procedure_id);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -78,7 +97,7 @@ export default async function PublicSOPPage({ params }: SOPPageProps) {
         </div>
 
         {/* Document */}
-        <DocumentViewer content={enrichedContent} />
+        <DocumentViewer content={enrichedContent} branding={branding} />
 
         {/* Footer */}
         <footer className="mt-12 text-center text-sm text-gray-500">

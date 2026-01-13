@@ -13,17 +13,20 @@ interface BrandingFormProps {
   userId: string;
   initialColor: string;
   initialLogoUrl: string | null;
+  initialBrandName: string | null;
 }
 
 export function BrandingForm({
   userId,
   initialColor,
   initialLogoUrl,
+  initialBrandName,
 }: BrandingFormProps) {
   const supabase = createClient();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [color, setColor] = useState(initialColor || "#2563eb");
+  const [brandName, setBrandName] = useState(initialBrandName || "");
   const [logoPreview, setLogoPreview] = useState<string | null>(initialLogoUrl);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,6 +74,7 @@ export function BrandingForm({
         .update({
           brand_color: color,
           brand_logo_url: finalLogoUrl,
+          brand_name: brandName,
         })
         .eq("id", userId);
 
@@ -88,6 +92,20 @@ export function BrandingForm({
 
   return (
     <form onSubmit={handleSave} className="space-y-8 max-w-xl">
+      {/* Brand Name Section */}
+      <div className="space-y-4">
+        <Label htmlFor="brandName">Nome da Empresa</Label>
+        <Input
+          id="brandName"
+          placeholder="Ex: Acme Corp"
+          value={brandName}
+          onChange={(e) => setBrandName(e.target.value)}
+        />
+        <p className="text-xs text-gray-500">
+          Aparecerá junto ao logo no cabeçalho dos documentos.
+        </p>
+      </div>
+
       {/* Logo Section */}
       <div className="space-y-4">
         <Label>Logo da Empresa</Label>
@@ -150,7 +168,7 @@ export function BrandingForm({
           </div>
         </div>
         <p className="text-xs text-gray-500">
-          Esta cor será usada em títulos e destaques nos documentos gerados.
+          Esta cor será usada em destaques (balões de passo) nos documentos.
         </p>
       </div>
 
