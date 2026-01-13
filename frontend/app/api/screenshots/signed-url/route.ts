@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const validBuckets: StorageBucket[] = [
       "screenshots",
       "annotated",
-      "public",
+      "public_links",
       "exports",
     ];
     if (!validBuckets.includes(body.bucket)) {
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     const validPaths = body.paths.filter((path) => {
       if (!path) return false;
       // Paths should start with user's ID for security
-      return path.startsWith(userIdPrefix) || body.bucket === "public";
+      return path.startsWith(userIdPrefix) || body.bucket === "public_links";
     });
 
     const signedUrlMap = await getSignedUrls(

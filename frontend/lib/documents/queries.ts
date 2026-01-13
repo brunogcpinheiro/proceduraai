@@ -21,10 +21,17 @@ export async function getDocument(
     .single();
 
   if (error) {
+    // PGRST116 = Not found (expected when no document exists)
     if (error.code === "PGRST116") {
-      return null; // Not found
+      return null;
     }
-    throw new Error(`Erro ao carregar documento: ${error.message}`);
+    // Log other errors for debugging
+    console.error(
+      "[getDocument] Error fetching document:",
+      error.code,
+      error.message
+    );
+    return null; // Return null instead of throwing to avoid breaking the page
   }
 
   return data as SOPDocument;

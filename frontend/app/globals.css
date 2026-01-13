@@ -131,3 +131,48 @@
     @apply font-heading;
   }
 }
+
+@media print {
+  /* Hide everything by default */
+  body {
+    visibility: hidden;
+  }
+
+  /* Show only the document */
+  #sop-document {
+    visibility: visible;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 2rem !important;
+    background: white;
+    z-index: 9999;
+  }
+
+  /* Ensure children are visible */
+  #sop-document * {
+    visibility: visible;
+  }
+
+  /* Reset layout constraints */
+  #sop-document header button,
+  #sop-document header .actions,
+  #sop-document-actions {
+    display: none !important;
+  }
+
+  /* Color accuracy */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Page breaks */
+  section,
+  li,
+  .step-item {
+    break-inside: avoid;
+  }
+}

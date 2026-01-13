@@ -1,85 +1,105 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { formatDistanceToNow } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { ArrowLeft, Clock, Globe, Lock, Layers, Trash2, Share2 } from 'lucide-react'
-import Link from 'next/link'
-import { EditableTitle } from './EditableTitle'
-import { EditableDescription } from './EditableDescription'
-import type { Procedure, ProcedureStatus } from '@/types/database'
+import type { Procedure, ProcedureStatus } from "@/types/database";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { ArrowLeft, Clock, Globe, Layers, Lock, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { EditableDescription } from "./EditableDescription";
+import { EditableTitle } from "./EditableTitle";
 
 interface ProcedureHeaderProps {
-  procedure: Procedure
-  onUpdate?: (updates: { title?: string; description?: string | null }) => Promise<void>
-  onDelete?: () => void
-  onShare?: () => void
-  isUpdating?: boolean
+  procedure: Procedure;
+  // Overrides for SOP-based public status
+  documentIsPublic?: boolean;
+  documentViewsCount?: number;
+  onUpdate?: (updates: {
+    title?: string;
+    description?: string | null;
+  }) => Promise<void>;
+  onDelete?: () => void;
+  onShare?: () => void;
+  isUpdating?: boolean;
 }
 
 const statusConfig: Record<
   ProcedureStatus,
   { label: string; color: string; bgColor: string }
 > = {
-  draft: { label: 'Rascunho', color: 'text-gray-600', bgColor: 'bg-gray-100' },
+  draft: { label: "Rascunho", color: "text-gray-600", bgColor: "bg-gray-100" },
   recording: {
-    label: 'Gravando',
-    color: 'text-yellow-600',
-    bgColor: 'bg-yellow-100',
+    label: "Gravando",
+    color: "text-yellow-600",
+    bgColor: "bg-yellow-100",
   },
   processing: {
-    label: 'Processando',
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
+    label: "Processando",
+    color: "text-blue-600",
+    bgColor: "bg-blue-100",
   },
-  ready: { label: 'Pronto', color: 'text-green-600', bgColor: 'bg-green-100' },
-  error: { label: 'Erro', color: 'text-red-600', bgColor: 'bg-red-100' },
-}
+  ready: { label: "Pronto", color: "text-green-600", bgColor: "bg-green-100" },
+  error: { label: "Erro", color: "text-red-600", bgColor: "bg-red-100" },
+};
 
 export function ProcedureHeader({
   procedure,
+  documentIsPublic,
+  documentViewsCount,
   onUpdate,
   onDelete,
   onShare,
   isUpdating = false,
 }: ProcedureHeaderProps) {
-  const [optimisticProcedure, setOptimisticProcedure] = useState(procedure)
-  const status = statusConfig[optimisticProcedure.status]
-  const createdAt = new Date(optimisticProcedure.created_at)
+  const [optimisticProcedure, setOptimisticProcedure] = useState(procedure);
+  const status = statusConfig[optimisticProcedure.status];
+
+  // Use override if provided, otherwise fallback to procedure status
+  // Note: documentIsPublic can be false, so we check specifically against undefined
+  const isPublic =
+    documentIsPublic !== undefined
+      ? documentIsPublic
+      : optimisticProcedure.is_public;
+  const viewsCount =
+    documentViewsCount !== undefined
+      ? documentViewsCount
+      : optimisticProcedure.views_count;
+
+  const createdAt = new Date(optimisticProcedure.created_at);
   const timeAgo = formatDistanceToNow(createdAt, {
     addSuffix: true,
     locale: ptBR,
-  })
+  });
 
   const handleTitleSave = async (title: string) => {
-    if (!onUpdate) return
+    if (!onUpdate) return;
 
     // Optimistic update
-    setOptimisticProcedure((prev) => ({ ...prev, title }))
+    setOptimisticProcedure((prev) => ({ ...prev, title }));
 
     try {
-      await onUpdate({ title })
+      await onUpdate({ title });
     } catch {
       // Rollback on error
-      setOptimisticProcedure(procedure)
-      throw new Error('Erro ao salvar título')
+      setOptimisticProcedure(procedure);
+      throw new Error("Erro ao salvar título");
     }
-  }
+  };
 
   const handleDescriptionSave = async (description: string | null) => {
-    if (!onUpdate) return
+    if (!onUpdate) return;
 
     // Optimistic update
-    setOptimisticProcedure((prev) => ({ ...prev, description }))
+    setOptimisticProcedure((prev) => ({ ...prev, description }));
 
     try {
-      await onUpdate({ description })
+      await onUpdate({ description });
     } catch {
       // Rollback on error
-      setOptimisticProcedure(procedure)
-      throw new Error('Erro ao salvar descrição')
+      setOptimisticProcedure(procedure);
+      throw new Error("Erro ao salvar descrição");
     }
-  }
+  };
 
   return (
     <div className="space-y-4">
@@ -124,16 +144,6 @@ export function ProcedureHeader({
 
         {/* Action buttons */}
         <div className="flex items-center gap-2 shrink-0">
-          {onShare && (
-            <button
-              onClick={onShare}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
-              aria-label="Compartilhar"
-            >
-              <Share2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Compartilhar</span>
-            </button>
-          )}
           {onDelete && (
             <button
               onClick={onDelete}
@@ -158,7 +168,7 @@ export function ProcedureHeader({
 
         {/* Public/Private */}
         <span className="flex items-center gap-1">
-          {optimisticProcedure.is_public ? (
+          {isPublic ? (
             <>
               <Globe className="h-4 w-4 text-green-500" />
               Público
@@ -184,10 +194,8 @@ export function ProcedureHeader({
         </span>
 
         {/* Views */}
-        {optimisticProcedure.is_public && optimisticProcedure.views_count > 0 && (
-          <span>{optimisticProcedure.views_count} visualizações</span>
-        )}
+        {isPublic && viewsCount > 0 && <span>{viewsCount} visualizações</span>}
       </div>
     </div>
-  )
+  );
 }

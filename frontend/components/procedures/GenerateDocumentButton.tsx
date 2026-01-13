@@ -8,7 +8,7 @@ interface GenerateDocumentButtonProps {
   stepCount: number;
   remaining?: number;
   hasDocument?: boolean;
-  onGenerated?: () => void;
+  onGenerated?: (document: unknown) => void;
 }
 
 export function GenerateDocumentButton({
@@ -42,7 +42,7 @@ export function GenerateDocumentButton({
         throw new Error(data.error || "Erro ao gerar documento");
       }
 
-      onGenerated?.();
+      onGenerated?.(data.document);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido");
     } finally {

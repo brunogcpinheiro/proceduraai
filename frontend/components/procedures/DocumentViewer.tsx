@@ -15,8 +15,17 @@ export function DocumentViewer({
   onExport,
   onEdit,
 }: DocumentViewerProps) {
+  const handleExport = () => {
+    if (onExport) {
+      onExport();
+    }
+  };
+
   return (
-    <article className="bg-white rounded-lg border border-gray-200 p-8 max-w-4xl mx-auto">
+    <article
+      id="sop-document"
+      className="bg-white rounded-lg border border-gray-200 p-8 max-w-4xl mx-auto"
+    >
       {/* Header */}
       <header className="border-b border-gray-200 pb-6 mb-8">
         <h1 className="text-2xl font-bold text-gray-900">{content.title}</h1>
@@ -30,10 +39,10 @@ export function DocumentViewer({
         </div>
 
         {/* Actions */}
-        <div className="mt-4 flex gap-3">
+        <div id="sop-document-actions" className="mt-4 flex gap-3">
           {onExport && (
             <button
-              onClick={onExport}
+              onClick={handleExport}
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
               <FileDown className="h-4 w-4" />

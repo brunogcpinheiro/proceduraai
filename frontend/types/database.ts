@@ -181,6 +181,9 @@ export interface SOPDocument {
   generation_reset_at: string;
   generated_at: string;
   last_edited_at: string | null;
+  is_public: boolean;
+  public_slug: string | null;
+  views_count: number;
   created_at: string;
   updated_at: string;
 }

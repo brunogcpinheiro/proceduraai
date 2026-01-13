@@ -1,98 +1,110 @@
-'use client'
+"use client";
 
-import { useEffect, useCallback, useState } from 'react'
-import { X, Link as LinkIcon, Copy, Check, Globe, Lock, Loader2 } from 'lucide-react'
-import type { Procedure } from '@/types/database'
+import type { SOPDocument } from "@/types/database";
+import {
+  Check,
+  Copy,
+  Globe,
+  Link as LinkIcon,
+  Loader2,
+  Lock,
+  X,
+} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
 interface ShareDialogProps {
-  procedure: Procedure
-  onClose: () => void
-  onGenerateSlug: () => Promise<string>
-  onTogglePublic: (isPublic: boolean) => Promise<void>
+  sopDocument: SOPDocument;
+  procedureTitle: string;
+  onClose: () => void;
+  onGenerateSlug: () => Promise<string>;
+  onTogglePublic: (isPublic: boolean) => Promise<void>;
 }
 
 export function ShareDialog({
-  procedure,
+  sopDocument,
+  procedureTitle,
   onClose,
   onGenerateSlug,
   onTogglePublic,
 }: ShareDialogProps) {
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [isToggling, setIsToggling] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [publicSlug, setPublicSlug] = useState(procedure.public_slug)
-  const [isPublic, setIsPublic] = useState(procedure.is_public)
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [publicSlug, setPublicSlug] = useState(sopDocument.public_slug);
+  const [isPublic, setIsPublic] = useState(sopDocument.is_public);
 
   const publicUrl = publicSlug
-    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/p/${publicSlug}`
-    : null
+    ? `${
+        typeof window !== "undefined" ? window.location.origin : ""
+      }/sop/${publicSlug}`
+    : null;
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
+      if (e.key === "Escape") {
+        onClose();
       }
     },
     [onClose]
-  )
+  );
 
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown)
-    document.body.style.overflow = 'hidden'
+    document.addEventListener("keydown", handleKeyDown);
+    window.document.body.style.overflow = "hidden";
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = ''
-    }
-  }, [handleKeyDown])
+      document.removeEventListener("keydown", handleKeyDown);
+      window.document.body.style.overflow = "";
+    };
+  }, [handleKeyDown]);
 
   const handleGenerateLink = async () => {
-    setIsGenerating(true)
+    setIsGenerating(true);
     try {
-      const slug = await onGenerateSlug()
-      setPublicSlug(slug)
-      setIsPublic(true)
+      const slug = await onGenerateSlug();
+      setPublicSlug(slug);
+      setIsPublic(true);
     } catch {
       // Error handled in parent
     } finally {
-      setIsGenerating(false)
+      setIsGenerating(false);
     }
-  }
+  };
 
   const handleTogglePublic = async () => {
-    setIsToggling(true)
+    setIsToggling(true);
     try {
-      await onTogglePublic(!isPublic)
-      setIsPublic(!isPublic)
+      await onTogglePublic(!isPublic);
+      setIsPublic(!isPublic);
       if (isPublic) {
-        setPublicSlug(null)
+        setPublicSlug(null);
       }
     } catch {
       // Error handled in parent
     } finally {
-      setIsToggling(false)
+      setIsToggling(false);
     }
-  }
+  };
 
   const handleCopy = async () => {
-    if (!publicUrl) return
+    if (!publicUrl) return;
 
     try {
-      await navigator.clipboard.writeText(publicUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(publicUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback for older browsers
-      const input = document.createElement('input')
-      input.value = publicUrl
-      document.body.appendChild(input)
-      input.select()
-      document.execCommand('copy')
-      document.body.removeChild(input)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      const input = window.document.createElement("input");
+      input.value = publicUrl;
+      window.document.body.appendChild(input);
+      input.select();
+      window.document.execCommand("copy");
+      window.document.body.removeChild(input);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
-  }
+  };
 
   return (
     <div
@@ -125,10 +137,10 @@ export function ShareDialog({
             id="share-dialog-title"
             className="text-lg font-semibold text-gray-900 mb-1"
           >
-            Compartilhar procedimento
+            Compartilhar SOP
           </h3>
           <p className="text-sm text-gray-500">
-            Gere um link público para compartilhar este procedimento.
+            Compartilhe o documento SOP de &quot;{procedureTitle}&quot;
           </p>
         </div>
 
@@ -143,21 +155,21 @@ export function ShareDialog({
                 <Lock className="h-5 w-5 text-gray-400" />
               )}
               <span className="text-sm font-medium text-gray-700">
-                {isPublic ? 'Público' : 'Privado'}
+                {isPublic ? "Público" : "Privado"}
               </span>
             </div>
             <button
               onClick={handleTogglePublic}
               disabled={isToggling}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                isPublic ? 'bg-primary' : 'bg-gray-200'
+                isPublic ? "bg-primary" : "bg-gray-200"
               }`}
               role="switch"
               aria-checked={isPublic}
             >
               <span
                 className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  isPublic ? 'translate-x-5' : 'translate-x-0'
+                  isPublic ? "translate-x-5" : "translate-x-0"
                 }`}
               />
             </button>
@@ -217,8 +229,14 @@ export function ShareDialog({
               Ative o modo público para gerar um link de compartilhamento.
             </p>
           )}
+
+          {/* Info note */}
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+            💡 Apenas o documento SOP formatado será público. Os passos gravados
+            permanecem privados.
+          </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

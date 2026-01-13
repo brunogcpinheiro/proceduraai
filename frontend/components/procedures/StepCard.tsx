@@ -187,8 +187,13 @@ export function StepCard({ step, onScreenshotClick }: StepCardProps) {
         {step.element_text && (
           <p className="mt-2 text-sm text-gray-500">
             Elemento:{" "}
-            <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">
-              {step.element_text}
+            <code
+              className="bg-gray-100 px-1.5 py-0.5 rounded text-xs max-w-xs inline-block truncate align-bottom"
+              title={step.element_text}
+            >
+              {step.element_text.length > 50
+                ? `${step.element_text.slice(0, 50)}...`
+                : step.element_text}
             </code>
           </p>
         )}
