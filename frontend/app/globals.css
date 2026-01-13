@@ -130,6 +130,16 @@
   h6 {
     @apply font-heading;
   }
+
+  /* Reset headings for SOP document specifically (User Request) */
+  #sop-document h1,
+  #sop-document h2,
+  #sop-document h3,
+  #sop-document h4,
+  #sop-document h5,
+  #sop-document h6 {
+    @apply font-sans !important;
+  }
 }
 
 @media print {
