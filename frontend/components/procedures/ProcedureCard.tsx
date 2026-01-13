@@ -1,42 +1,42 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import Image from 'next/image'
-import { formatDistanceToNow } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { Clock, Eye, Globe, Lock, Play } from 'lucide-react'
-import type { ProcedureListItem, ProcedureStatus } from '@/types/database'
+import type { ProcedureListItem, ProcedureStatus } from "@/types/database";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Clock, Eye, Globe, Lock, Play } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
 interface ProcedureCardProps {
-  procedure: ProcedureListItem
+  procedure: ProcedureListItem;
 }
 
 const statusConfig: Record<
   ProcedureStatus,
   { label: string; color: string; bgColor: string }
 > = {
-  draft: { label: 'Rascunho', color: 'text-gray-600', bgColor: 'bg-gray-100' },
+  draft: { label: "Rascunho", color: "text-gray-600", bgColor: "bg-gray-100" },
   recording: {
-    label: 'Gravando',
-    color: 'text-yellow-600',
-    bgColor: 'bg-yellow-100',
+    label: "Gravando",
+    color: "text-yellow-600",
+    bgColor: "bg-yellow-100",
   },
   processing: {
-    label: 'Processando',
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
+    label: "Processando",
+    color: "text-blue-600",
+    bgColor: "bg-blue-100",
   },
-  ready: { label: 'Pronto', color: 'text-green-600', bgColor: 'bg-green-100' },
-  error: { label: 'Erro', color: 'text-red-600', bgColor: 'bg-red-100' },
-}
+  ready: { label: "Pronto", color: "text-green-600", bgColor: "bg-green-100" },
+  error: { label: "Erro", color: "text-red-600", bgColor: "bg-red-100" },
+};
 
 export function ProcedureCard({ procedure }: ProcedureCardProps) {
-  const status = statusConfig[procedure.status]
-  const createdAt = new Date(procedure.created_at)
+  const status = statusConfig[procedure.status];
+  const createdAt = new Date(procedure.created_at);
   const timeAgo = formatDistanceToNow(createdAt, {
     addSuffix: true,
     locale: ptBR,
-  })
+  });
 
   return (
     <Link
@@ -74,14 +74,14 @@ export function ProcedureCard({ procedure }: ProcedureCardProps) {
           <div className="absolute top-2 right-2">
             {procedure.is_public ? (
               <span
-                className="p-1.5 rounded-full bg-white/90 text-green-600"
+                className="inline-flex items-center justify-center p-1.5 rounded-full bg-white/90 text-green-600 shadow-sm"
                 title="Público"
               >
                 <Globe className="h-4 w-4" />
               </span>
             ) : (
               <span
-                className="p-1.5 rounded-full bg-white/90 text-gray-500"
+                className="inline-flex items-center justify-center p-1.5 rounded-full bg-white/90 text-gray-500 shadow-sm"
                 title="Privado"
               >
                 <Lock className="h-4 w-4" />
@@ -114,5 +114,5 @@ export function ProcedureCard({ procedure }: ProcedureCardProps) {
         </div>
       </article>
     </Link>
-  )
+  );
 }

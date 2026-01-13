@@ -42,7 +42,7 @@ export async function getProcedures(
   let query = supabase
     .from("procedures")
     .select(
-      "id, title, status, step_count, thumbnail_url, created_at, views_count, is_public",
+      "id, title, status, step_count, thumbnail_url, created_at, sop_documents(is_public, views_count)",
       { count: "exact" }
     )
     .eq("user_id", userId)
@@ -67,7 +67,26 @@ export async function getProcedures(
     throw new Error(`Erro ao carregar procedimentos: ${error.message}`);
   }
 
-  const procedures = (data as ProcedureListItem[]) ?? [];
+  const rawData = (data as any[]) ?? [];
+
+  const procedures: ProcedureListItem[] = rawData.map((p) => {
+    // Handle potential array or object from join
+    const sopDoc = Array.isArray(p.sop_documents)
+      ? p.sop_documents[0]
+      : p.sop_documents;
+
+    return {
+      id: p.id,
+      title: p.title,
+      status: p.status,
+      step_count: p.step_count,
+      thumbnail_url: p.thumbnail_url,
+      created_at: p.created_at,
+      is_public: sopDoc?.is_public ?? false,
+      views_count: sopDoc?.views_count ?? 0,
+    };
+  });
+
   const total = count ?? 0;
   const totalPages = Math.ceil(total / pageSize);
 
