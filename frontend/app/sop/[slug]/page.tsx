@@ -32,36 +32,27 @@ async function getPublicDocument(slug: string): Promise<SOPDocument | null> {
   return data as SOPDocument;
 }
 
-async function getProcedureTitle(procedureId: string): Promise<string> {
-  const supabase = await createClient();
-
-  const { data } = await supabase
-    .from("procedures")
-    .select("title")
-    .eq("id", procedureId)
-    .single();
-
-  // Cast to handle TypeScript inference limitations
-  const result = data as { title: string } | null;
-  return result?.title || "Documento SOP";
-}
-
-async function getProcedureBranding(procedureId: string) {
+async function getProcedureContext(procedureId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("procedures")
-    .select("users (brand_color, brand_logo_url, brand_name)")
+    .select("title, users (brand_color, brand_logo_url, brand_name, name)")
     .eq("id", procedureId)
     .single();
 
   const user = (data as any)?.users;
-  return user
-    ? {
-        color: user.brand_color,
-        logoUrl: user.brand_logo_url,
-        name: user.brand_name,
-      }
-    : undefined;
+
+  return {
+    title: (data as any)?.title || "Documento SOP",
+    branding: user
+      ? {
+          color: user.brand_color,
+          logoUrl: user.brand_logo_url,
+          name: user.brand_name,
+        }
+      : undefined,
+    authorName: user?.name as string | null | undefined,
+  };
 }
 
 export default async function PublicSOPPage({ params }: SOPPageProps) {
@@ -76,8 +67,9 @@ export default async function PublicSOPPage({ params }: SOPPageProps) {
   // This allows public access to images in the private 'screenshots' bucket
   const enrichedContent = await enrichContentWithSignedUrls(document.content);
 
-  const procedureTitle = await getProcedureTitle(document.procedure_id);
-  const branding = await getProcedureBranding(document.procedure_id);
+  const { title, branding, authorName } = await getProcedureContext(
+    document.procedure_id
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -88,16 +80,18 @@ export default async function PublicSOPPage({ params }: SOPPageProps) {
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Title */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {procedureTitle}
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
           <p className="text-gray-500">
             Documento SOP • Versão {document.content.version}
           </p>
         </div>
 
         {/* Document */}
-        <DocumentViewer content={enrichedContent} branding={branding} />
+        <DocumentViewer
+          content={enrichedContent}
+          branding={branding}
+          authorName={authorName}
+        />
 
         {/* Footer */}
         <footer className="mt-12 text-center text-sm text-gray-500">

@@ -3,24 +3,43 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+import { createClient } from "@/lib/supabase/client";
 import type { User } from "@/types/database";
 import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 interface ProfileFormProps {
   user: Pick<User, "name" | "email">;
+  userId: string;
 }
 
-export function ProfileForm({ user }: ProfileFormProps) {
+export function ProfileForm({ user, userId }: ProfileFormProps) {
+  const supabase = createClient();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState(user.name || "");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call or call server action
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsLoading(false);
+
+    try {
+      const { error } = await (supabase.from("users") as any)
+        .update({ name })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      router.refresh();
+      alert("Perfil atualizado com sucesso!");
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      alert("Erro ao atualizar perfil.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -49,7 +68,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
         </p>
       </div>
 
-      <div className="flex justify-end pt-4">
+      <div className="flex justify-start pt-4">
         <Button type="submit" disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Salvar Alterações

@@ -29,12 +29,14 @@ interface ProcedureDetailProps {
     logoUrl?: string | null;
     name?: string | null;
   };
+  authorName?: string | null;
 }
 
 export function ProcedureDetail({
   procedure,
   document: initialDocument,
   branding,
+  authorName,
 }: ProcedureDetailProps) {
   const router = useRouter();
   const [currentProcedure, setCurrentProcedure] = useState(procedure);
@@ -199,6 +201,7 @@ export function ProcedureDetail({
               <DocumentViewer
                 content={currentDocument.content}
                 branding={branding}
+                authorName={authorName}
               />
             </div>
 

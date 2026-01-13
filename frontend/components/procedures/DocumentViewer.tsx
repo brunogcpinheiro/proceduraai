@@ -11,6 +11,7 @@ interface DocumentViewerProps {
     logoUrl?: string | null;
     name?: string | null;
   };
+  authorName?: string | null;
   onExport?: () => void;
   onEdit?: () => void;
 }
@@ -18,6 +19,7 @@ interface DocumentViewerProps {
 export function DocumentViewer({
   content,
   branding,
+  authorName,
   onExport,
   onEdit,
 }: DocumentViewerProps) {
@@ -63,6 +65,12 @@ export function DocumentViewer({
             Gerado em{" "}
             {new Date(content.generatedAt).toLocaleDateString("pt-BR")}
           </span>
+          {authorName && (
+            <>
+              <span>•</span>
+              <span>Gerado por: {authorName}</span>
+            </>
+          )}
         </div>
 
         {/* Actions */}

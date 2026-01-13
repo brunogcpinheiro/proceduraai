@@ -172,7 +172,7 @@ export function BrandingForm({
         </p>
       </div>
 
-      <div className="flex justify-end pt-4">
+      <div className="flex justify-start pt-4">
         <Button type="submit" disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Salvar Preferências

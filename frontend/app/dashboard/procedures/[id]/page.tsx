@@ -39,7 +39,7 @@ async function ProcedureContent({ id }: ProcedureContentProps) {
   // Fetch user branding
   const { data } = await supabase
     .from("users")
-    .select("brand_color, brand_logo_url, brand_name")
+    .select("brand_color, brand_logo_url, brand_name, name")
     .eq("id", user.id)
     .single();
 
@@ -71,6 +71,7 @@ async function ProcedureContent({ id }: ProcedureContentProps) {
         logoUrl: profile?.brand_logo_url,
         name: profile?.brand_name,
       }}
+      authorName={profile?.name}
     />
   );
 }

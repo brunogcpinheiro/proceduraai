@@ -34,7 +34,10 @@ export default async function ProfilePage() {
 
       <div className="h-px bg-gray-100" />
 
-      <ProfileForm user={profile as { name: string | null; email: string }} />
+      <ProfileForm
+        user={profile as { name: string | null; email: string }}
+        userId={user.id}
+      />
     </div>
   );
 }
