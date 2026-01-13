@@ -23,6 +23,8 @@ export interface User {
   plan: Plan;
   credits_remaining: number;
   credits_reset_at: string | null;
+  brand_color: string | null;
+  brand_logo_url: string | null;
   created_at: string;
   updated_at: string;
 }
